@@ -25,18 +25,6 @@ def test_check(image_origin, top_left, bottom_right):
     cv2.destroyAllWindows()
 
 
-# 比较颜色用
-def same_color(color1, color2):
-    result = False
-    for i, j in zip(color1, color2):
-        if abs(i - j) < 10:
-            result = True
-        else:
-            result = False
-            break
-    return result
-
-
 # 取平台中心点
 def find_box_location(origin_path, qizi_range):
     image_origin = cv2.imread(origin_path)
@@ -99,11 +87,20 @@ def find_yuandian_location(yuandian_path, origin_path):
     return max_val, yuandian_x, yuandian_y
 
 
+def game_over(jieshu_path, origin_path):
+    image_jieshu = cv2.imread(jieshu_path)
+    image_origin = cv2.imread(origin_path)
+    res = cv2.matchTemplate(image_origin, image_jieshu, cv2.TM_CCOEFF_NORMED)
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+    if max_val > 0.6:
+        return True
+
+
 # adb swip操作，模拟长按
 def jump(distance):
     # 固定常数，多次测试所得
     k = 1.37
-    press_time = int(max(distance * k, 300))
+    press_time = int(distance * k)
     # adb命令
     first_x = random.randint(100, 500)
     first_y = random.randint(200, 1000)
@@ -115,38 +112,36 @@ def main():
     image_origin = "screenshot.png"
     image_qizi = "qizi.png"
     image_yuandian = "yuandian.png"
+    image_jieshu = "jieshu.png"
 
     # 循环操作
     while True:
         screen_shot()
-        # image = load_pic()
-        qizi = find_qi_location(image_qizi, image_origin)
-        qizi_location = (qizi[0], qizi[1])
-        yuandian = find_yuandian_location(image_yuandian, image_origin)
-        if yuandian[0] > 0.8:
-            box_location = (yuandian[1], yuandian[2])
-            print("圆点定位！")
+        if game_over(image_jieshu, image_origin):
+            print("失败了！")
+            break
         else:
-            top_l = list(qizi[2])
-            bot_r = list(qizi[3])
-            top_l.extend(bot_r)
-            print(top_l)
-            box_location = find_box_location(image_origin, top_l)
-            print("边缘定位！")
-        print("平台位置：", box_location)
-        print("棋子位置：", qizi_location)
-        distance = int(math.sqrt(
-            math.pow(abs(box_location[0] - qizi_location[0]), 2) + math.pow(abs(box_location[1] - qizi_location[1]), 2)))
-        print(distance)
-        jump(distance)
-        time.sleep(random.random()+1)
+            qizi = find_qi_location(image_qizi, image_origin)
+            qizi_location = (qizi[0], qizi[1])
+            yuandian = find_yuandian_location(image_yuandian, image_origin)
+            if yuandian[0] > 0.8:
+                box_location = (yuandian[1], yuandian[2])
+                print("圆点定位！")
+            else:
+                top_l = list(qizi[2])
+                bot_r = list(qizi[3])
+                top_l.extend(bot_r)
+                print(top_l)
+                box_location = find_box_location(image_origin, top_l)
+                print("边缘定位！")
+            print("平台位置：", box_location)
+            print("棋子位置：", qizi_location)
+            distance = int(math.sqrt(
+                math.pow(abs(box_location[0] - qizi_location[0]), 2) + math.pow(abs(box_location[1] - qizi_location[1]), 2)))
+            print(distance)
+            jump(distance)
+            time.sleep(random.random()+1)
 
 
 if __name__ == "__main__":
     main()
-    # find_yuandian_location("yuandian.png", "screenshot.png")
-    # qizi = find_qi_location("qizi.png", "screenshot.png")
-    # top_l = list(qizi[2])
-    # bot_r = list(qizi[3])
-    # top_l.extend(bot_r)
-    # print(find_box_location("screenshot.png", top_l))
